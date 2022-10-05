@@ -94,6 +94,8 @@ public class Cell extends Label {
         Scene scene = new Scene(endScreen, 300, 300);
         Main.window.setScene(scene);
 
+        Main.threadPool.shutdownNow();
+
     }
     public String getValue() {
 
