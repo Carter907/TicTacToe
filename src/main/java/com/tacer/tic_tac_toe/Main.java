@@ -12,17 +12,18 @@ import javafx.scene.text.*;
 
 import java.util.concurrent.*;
 import java.util.*;
+
 public class Main extends Application {
 
     public static Stage window;
-    public static ExecutorService threadPool = Executors.newCachedThreadPool();
+    public ExecutorService threadPool = Executors.newCachedThreadPool();
 
 
     @Override
     public void start(Stage stage) {
 
         BorderPane root = new BorderPane();
-        root.setPadding(new Insets(30,30,30,30));
+        root.setPadding(new Insets(30, 30, 30, 30));
 
         GridPane board = new GridPane();
         board.setStyle("-fx-background-color: darkgray;");
@@ -57,8 +58,7 @@ public class Main extends Application {
 
                     });
                 }
-            }
-            catch (InterruptedException e) {
+            } catch (InterruptedException e) {
 
             }
         });
@@ -66,8 +66,8 @@ public class Main extends Application {
         reset.setId("reset-btn");
         reset.setOnAction(e -> {
 
-            for (Cell[] cellRow: Cell.cells) {
-                for (Cell c: cellRow) {
+            for (Cell[] cellRow : Cell.cells) {
+                for (Cell c : cellRow) {
                     c.setValue(null);
                     c.setText(null);
 
@@ -93,7 +93,13 @@ public class Main extends Application {
         window.setTitle("Tic Tac Toe");
         window.show();
 
+        window.setOnHidden(e -> {
+
+            this.threadPool.shutdownNow();
+        });
+
     }
+
     public static Color getColor(int i, boolean rev) {
 
         int r = 0;
@@ -101,18 +107,16 @@ public class Main extends Application {
         int b = 0;
 
         if (rev) {
-            g = 256-(i % 256);
-            b = 256-(i % 256);
-        }
-        else {
+            g = 256 - (i % 256);
+            b = 256 - (i % 256);
+        } else {
             b = i % 256;
             g = i % 256;
         }
 
-        return Color.rgb(r,g,b);
+        return Color.rgb(r, g, b);
     }
 
-    
 
     public static void main(String[] args) {
         launch();

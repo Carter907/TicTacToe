@@ -20,7 +20,7 @@ public class Cell extends Label {
 
     public static Cell[][] cells = new Cell[3][3];
 
-    public Cell (int row, int col) {
+    public Cell(int row, int col) {
 
         super("");
 
@@ -35,17 +35,16 @@ public class Cell extends Label {
 
             if (turn && this.getValue() == null) {
                 this.setValue("X");
-                this.setFont(Font.font(Font.getFamilies().get(17), FontWeight.BOLD, this.getPrefHeight()/6));
+                this.setFont(Font.font(Font.getFamilies().get(17), FontWeight.BOLD, this.getPrefHeight() / 6));
                 this.setText(this.getValue());
                 this.setTextFill(Color.RED);
                 Cell.turn = false;
                 checkCells();
 
-            }
-            else if (this.getValue() == null){
+            } else if (this.getValue() == null) {
                 this.setValue("O");
 
-                this.setFont(Font.font(Font.getFamilies().get(17), FontWeight.BOLD, this.getPrefHeight()/6));
+                this.setFont(Font.font(Font.getFamilies().get(17), FontWeight.BOLD, this.getPrefHeight() / 6));
                 this.setText(this.getValue());
                 this.setTextFill(Color.BLUE);
                 Cell.turn = true;
@@ -57,31 +56,31 @@ public class Cell extends Label {
 
     public static boolean checkCells() {
 
-       Pattern xWon = Pattern.compile("(XXX......)|(X...X...X)|(..X.X.X..)|(.X..X..X.)|(X..X..X..)|(...XXX...)|(......XXX)|(..X..X..X)");
-       Pattern oWon = Pattern.compile("(OOO......)|(O...O...O)|(..O.O.O..)|(.O..O..O.)|(O..O..O..)|(...OOO...)|(......OOO)|(..O..O..O)");
-       String won = "";
-       for (int i = 0; i < 9; i++) {
-           if (cells[i/3][i%3].getValue() == null)
-            won = won + "n";
-           else
-               won = won + cells[i/3][i%3].getValue();
+        Pattern xWon = Pattern.compile("(XXX......)|(X...X...X)|(..X.X.X..)|(.X..X..X.)|(X..X..X..)|(...XXX...)|(......XXX)|(..X..X..X)");
+        Pattern oWon = Pattern.compile("(OOO......)|(O...O...O)|(..O.O.O..)|(.O..O..O.)|(O..O..O..)|(...OOO...)|(......OOO)|(..O..O..O)");
+        String won = "";
+        for (int i = 0; i < 9; i++) {
+            if (cells[i / 3][i % 3].getValue() == null)
+                won = won + "n";
+            else
+                won = won + cells[i / 3][i % 3].getValue();
 
-       }
+        }
         System.out.println(won);
         if (won.matches(xWon.pattern())) {
 
             endScreen("X");
 
             return true;
-        }
-        else if (won.matches(oWon.pattern())) {
+        } else if (won.matches(oWon.pattern())) {
 
             endScreen("O");
 
             return true;
         }
-       return false;
+        return false;
     }
+
     private static void endScreen(String won) {
 
         Label endTitle = new Label(won + " won in Tic Tac Toe!");
@@ -94,12 +93,12 @@ public class Cell extends Label {
         Scene scene = new Scene(endScreen, 300, 300);
         Main.window.setScene(scene);
 
-        Main.threadPool.shutdownNow();
 
     }
+
     public String getValue() {
 
-       return this.value;
+        return this.value;
     }
 
     public void setValue(String value) {
