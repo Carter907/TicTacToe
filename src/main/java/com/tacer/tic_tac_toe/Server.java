@@ -1,24 +1,30 @@
 package com.tacer.tic_tac_toe;
 
 import javafx.application.*;
+import javafx.beans.property.ListProperty;
+import javafx.beans.property.SimpleListProperty;
+import javafx.collections.FXCollections;
+import javafx.collections.*;
 import javafx.geometry.*;
 import javafx.scene.*;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
 import javafx.stage.*;
-import javafx.scene.shape.*;
 import javafx.scene.text.*;
 
-import java.util.concurrent.*;
+import java.io.*;
+import java.net.*;
 import java.util.*;
+import java.util.concurrent.*;
 
-public class Main extends Application {
+public class Server extends Application {
 
+    public static boolean isActive = false;
     public static Stage window;
     public ExecutorService threadPool = Executors.newCachedThreadPool();
 
-
+    private ExecutorService sockets = Executors.newFixedThreadPool(2);
     @Override
     public void start(Stage stage) {
 
@@ -90,8 +96,27 @@ public class Main extends Application {
 
         window = stage;
         window.setScene(scene);
-        window.setTitle("Tic Tac Toe");
+        window.setTitle("Tic Tac Toe(Server)");
         window.show();
+
+        threadPool.execute(() -> {
+
+            try {
+                ServerSocket serverSocket = new ServerSocket(8001);
+                isActive = true;
+                while (true) {
+
+                    Socket client0 = serverSocket.accept();
+                    System.out.println("accepted client");
+                    sockets.execute(new ClientHandler(client0));
+                    System.out.println("client handled");
+                }
+
+            } catch (IOException e) {
+
+            }
+        });
+
 
         window.setOnHidden(e -> {
 
@@ -117,8 +142,9 @@ public class Main extends Application {
         return Color.rgb(r, g, b);
     }
 
-
     public static void main(String[] args) {
-        launch();
+        Server.launch(args);
     }
+
+
 }

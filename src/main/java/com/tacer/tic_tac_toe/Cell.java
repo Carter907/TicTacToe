@@ -8,9 +8,10 @@ import javafx.scene.layout.StackPane;
 import javafx.scene.text.*;
 import javafx.scene.paint.*;
 
+import java.io.Serializable;
 import java.util.regex.Pattern;
 
-public class Cell extends Label {
+public class Cell extends Label implements Serializable {
 
     public static DoubleProperty windowHeight = new SimpleDoubleProperty();
     public static DoubleProperty windowWidth = new SimpleDoubleProperty();
@@ -91,7 +92,7 @@ public class Cell extends Label {
         endTitle.setTextFill(Color.GREEN);
 
         Scene scene = new Scene(endScreen, 300, 300);
-        Main.window.setScene(scene);
+        Server.window.setScene(scene);
 
 
     }
