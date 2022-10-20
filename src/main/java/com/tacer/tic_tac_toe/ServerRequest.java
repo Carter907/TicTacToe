@@ -1,19 +1,37 @@
 package com.tacer.tic_tac_toe;
 
-import javafx.event.*;
+import javafx.event.ActionEvent;
 
-import java.io.*;
+import java.io.Serializable;
 
 public class ServerRequest implements Serializable {
 
-    public enum Request implements Serializable{
+    public enum Request {
         RESET_BOARD,
         GET_INFO,
         ADD_X,
         ADD_O;
     }
 
-    public Request getRequest() {
+    private String request;
+    private ActionEvent event;
+
+    public ServerRequest(ActionEvent event, Request request) {
+        this.request = request.toString();
+        this.event = event;
+    }
+
+    public ServerRequest(Request request) {
+        this.request = request.toString();
+
+    }
+
+    public ServerRequest(String request) {
+
+        this.request = request;
+    }
+
+    public String getRequest() {
         return request;
     }
 
@@ -21,44 +39,42 @@ public class ServerRequest implements Serializable {
         return event;
     }
 
-    private Request request;
-    private ActionEvent event;
-
-    public ServerRequest(ActionEvent event, Request request) {
-        this.request = request;
-        this.event = event;
-    }
-    public ServerRequest(Request request) {
-        this.request = request;
-
-    }
-
-    public Object fufillRequest() {
+    public Object fulfillRequest(Server serverToFulfill) {
 
 
         switch (request) {
 
-            case RESET_BOARD -> {
-                return resetBoard();
+            case "RESET_BOARD" -> {
+                return resetBoard(serverToFulfill);
 
             }
 
         }
+        System.out.println(request + " didn't match");
         return new Object();
     }
 
-    private static Object resetBoard() {
-        Cell[][] board = Cell.cells;
+    private Cell[][] resetBoard(Server server) {
 
+        for (Cell[] cArr : Cell.cells) {
+            for (Cell c : cArr) {
 
-        for (Cell[] cellRow : board) {
-            for (Cell c : cellRow) {
                 c.setValue(null);
                 c.setText(null);
-
             }
         }
-        return board;
+
+        server.getBoard().getChildren().forEach(c -> {
+            Cell cell = (Cell) c;
+            cell.setValue(null);
+            cell.setText(null);
+        });
+
+
+        System.out.println(Cell.cells);
+
+
+        return Cell.cells;
 
     }
 }

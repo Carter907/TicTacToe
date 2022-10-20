@@ -31,7 +31,6 @@ public class Cell extends Label implements Serializable {
         this.setAlignment(Pos.CENTER);
         this.getStyleClass().add("cell");
 
-
         this.setOnMouseClicked(e -> {
 
             if (turn && this.getValue() == null) {
@@ -92,9 +91,25 @@ public class Cell extends Label implements Serializable {
         endTitle.setTextFill(Color.GREEN);
 
         Scene scene = new Scene(endScreen, 300, 300);
-        Server.window.setScene(scene);
+        Client.window.setScene(scene);
 
 
+    }
+
+    public static Cell[][] setStyles(Cell[][] cells) {
+        for (Cell[] cArr : cells) {
+            for (Cell c : cArr) {
+                c.setText(" ");
+                c.prefHeightProperty().bind(windowHeight);
+                c.prefWidthProperty().bind(windowWidth);
+                c.setAlignment(Pos.CENTER);
+                c.getStyleClass().add("cell");
+
+            }
+
+        }
+
+        return cells;
     }
 
     public String getValue() {
@@ -105,5 +120,27 @@ public class Cell extends Label implements Serializable {
     public void setValue(String value) {
 
         this.value = value;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+
+        if (this == o) {
+
+            return true;
+        }
+
+        if (o instanceof Cell) {
+
+            Cell other = (Cell)o;
+            return this.getValue().equals(other.getValue());
+        }
+
+        return false;
+    }
+    @Override
+    public String toString() {
+
+        return String.format("%s", value);
     }
 }

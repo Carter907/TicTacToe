@@ -1,22 +1,25 @@
 package com.tacer.tic_tac_toe;
 
-import javafx.application.*;
-import javafx.beans.property.ListProperty;
-import javafx.beans.property.SimpleListProperty;
-import javafx.collections.FXCollections;
-import javafx.collections.*;
-import javafx.geometry.*;
-import javafx.scene.*;
-import javafx.scene.control.*;
-import javafx.scene.layout.*;
+import javafx.application.Application;
+import javafx.application.Platform;
+import javafx.geometry.Insets;
+import javafx.scene.Scene;
+import javafx.scene.control.Button;
+import javafx.scene.control.Label;
+import javafx.scene.layout.BorderPane;
+import javafx.scene.layout.GridPane;
+import javafx.scene.layout.Pane;
 import javafx.scene.paint.Color;
-import javafx.stage.*;
-import javafx.scene.text.*;
+import javafx.scene.text.Font;
+import javafx.scene.text.FontPosture;
+import javafx.scene.text.FontWeight;
+import javafx.stage.Stage;
 
-import java.io.*;
-import java.net.*;
-import java.util.*;
-import java.util.concurrent.*;
+import java.io.IOException;
+import java.net.ServerSocket;
+import java.net.Socket;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public class Server extends Application {
 
@@ -25,13 +28,21 @@ public class Server extends Application {
     public ExecutorService threadPool = Executors.newCachedThreadPool();
 
     private ExecutorService sockets = Executors.newFixedThreadPool(2);
+
+    private BorderPane root;
+    private GridPane board;
+    private Label title;
+    private Button reset;
+    private Pane top;
+    private Scene scene;
+
     @Override
     public void start(Stage stage) {
 
-        BorderPane root = new BorderPane();
+        root = new BorderPane();
         root.setPadding(new Insets(30, 30, 30, 30));
 
-        GridPane board = new GridPane();
+        board = new GridPane();
         board.setStyle("-fx-background-color: darkgray;");
         board.setHgap(4);
         board.setVgap(4);
@@ -43,7 +54,7 @@ public class Server extends Application {
             }
         }
 
-        Label title = new Label("Tic Tac Toe!");
+        title = new Label("Tic Tac Toe!");
         title.translateXProperty().bind(root.widthProperty().divide(2).subtract(80));
         title.setFont(Font.font("Times New Roman", FontWeight.BOLD, FontPosture.ITALIC, 30));
 
@@ -68,7 +79,7 @@ public class Server extends Application {
 
             }
         });
-        Button reset = new Button("reset board");
+        reset = new Button("reset board");
         reset.setId("reset-btn");
         reset.setOnAction(e -> {
 
@@ -82,14 +93,14 @@ public class Server extends Application {
 
         });
 
-        Pane top = new Pane();
+        top = new Pane();
         top.getChildren().addAll(title, reset);
 
         root.setTop(top);
 
         root.setCenter(board);
 
-        Scene scene = new Scene(root, 400, 400);
+        scene = new Scene(root, 400, 400);
         scene.getStylesheets().add(getClass().getResource("application.css").toExternalForm());
         Cell.windowHeight.bind(scene.heightProperty());
         Cell.windowWidth.bind(scene.widthProperty());
@@ -106,9 +117,9 @@ public class Server extends Application {
                 isActive = true;
                 while (true) {
 
-                    Socket client0 = serverSocket.accept();
+                    Socket client = serverSocket.accept();
                     System.out.println("accepted client");
-                    sockets.execute(new ClientHandler(client0));
+                    sockets.execute(new ClientHandler(this, client));
                     System.out.println("client handled");
                 }
 
@@ -124,7 +135,53 @@ public class Server extends Application {
         });
 
     }
+    public BorderPane getRoot() {
+        return root;
+    }
 
+    public void setRoot(BorderPane root) {
+        this.root = root;
+    }
+
+    public GridPane getBoard() {
+        return board;
+    }
+
+    public void setBoard(GridPane board) {
+        this.board = board;
+    }
+
+    public Label getTitle() {
+        return title;
+    }
+
+    public void setTitle(Label title) {
+        this.title = title;
+    }
+
+    public Button getReset() {
+        return reset;
+    }
+
+    public void setReset(Button reset) {
+        this.reset = reset;
+    }
+
+    public Pane getTop() {
+        return top;
+    }
+
+    public void setTop(Pane top) {
+        this.top = top;
+    }
+
+    public Scene getScene() {
+        return scene;
+    }
+
+    public void setScene(Scene scene) {
+        this.scene = scene;
+    }
     public static Color getColor(int i, boolean rev) {
 
         int r = 0;

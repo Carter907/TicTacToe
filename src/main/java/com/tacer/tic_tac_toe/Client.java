@@ -19,12 +19,15 @@ import javafx.scene.text.FontWeight;
 import javafx.stage.Stage;
 
 import java.io.IOException;
+import java.io.NotSerializableException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.InetAddress;
 import java.net.Socket;
+import java.util.Arrays;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.stream.Stream;
 
 public class Client extends Application {
 
@@ -51,7 +54,6 @@ public class Client extends Application {
         try {
             Socket socket = new Socket("localhost", 8001);
 
-
             toServer = new ObjectOutputStream(socket.getOutputStream());
             fromServer = new ObjectInputStream(socket.getInputStream());
 
@@ -64,6 +66,7 @@ public class Client extends Application {
         window.setOnHidden(e -> {
             Display.threadPool.shutdownNow();
             while (!Display.threadPool.isTerminated()) {
+
                 try {
                     Thread.sleep(10);
                     System.out.println(Display.threadPool);
@@ -139,16 +142,55 @@ public class Client extends Application {
             Button reset = new Button("reset board");
             reset.setId("reset-btn");
             reset.setOnAction(e -> {
-                try {
+                new Thread(() -> {
 
-                    toServer.writeObject(new ServerRequest(e, ServerRequest.Request.RESET_BOARD));
-                    toServer.flush();
-                    Cell.cells = (Cell[][]) fromServer.readObject();
-                } catch (IOException f) {
-                    f.printStackTrace();
-                } catch (ClassNotFoundException g) {
-                    g.printStackTrace();
-                }
+                    try {
+
+                        toServer.writeObject(new ServerRequest(ServerRequest.Request.RESET_BOARD));
+
+                        toServer.flush();
+
+
+                        System.out.println("before reading");
+
+                        //Creating the object that will back the GridPane representing the board
+                        Cell[][] cells = (Cell[][]) fromServer.readObject();
+                        //Creating the styling for the Transient fields
+                        Cell.setStyles(cells);
+
+                        Stream.of(cells).forEach(cArr -> System.out.println(Arrays.toString(cArr)));
+                        System.out.println("after reading");
+                        Platform.runLater(() -> {
+                            Cell.cells = cells;
+                            Stream.of(Cell.cells).forEach(cArr -> System.out.println(Arrays.toString(cArr)));
+                            board.getChildren().clear();
+                            for (int row = 0; row < Cell.cells.length; row++) {
+                                for (int col = 0; col < Cell.cells.length; col++) {
+                                    board.add(Cell.cells[row][col], col, row);
+                                }
+
+
+                            }
+                            Stream.of(board.getChildren()).forEach(System.out::println);
+                        });
+//                        Platform.runLater(() -> {
+//                            board.getChildren().clear();
+//                            for (int row = 0; row < cells.length; row++) {
+//                                for (int col = 0; col < cells[row].length; col++) {
+//
+//                                    board.add(cells[row][col],col,row);
+//                                }
+//                            }
+//
+//                        });
+
+                    } catch (IOException f) {
+                        f.printStackTrace();
+                    } catch (ClassNotFoundException g) {
+                        g.printStackTrace();
+                    }
+
+                }).start();
 
 
             });
@@ -183,28 +225,41 @@ public class Client extends Application {
             serverBox.setOnAction(e -> {
 
                 window.setScene(setGame());
+                threadPool.shutdownNow();
             });
-            serverBox.setValue("please select a Server");
-            serverBox.setPrefSize(400, 20);
+            serverBox.setOnMouseClicked(e -> {
+                new Thread(() -> {
 
-            threadPool.execute(() -> {
+                    try {
 
-                try {
-                    while (true) {
                         toServer.writeObject(new ServerRequest(ServerRequest.Request.GET_INFO));
+                        toServer.flush();
 
+                        System.out.println("info executed");
                         InetAddress socketInfo = (InetAddress) fromServer.readObject();
 
-                        serverBox.getItems().add(socketInfo.toString());
+                        if (!serverBox.getItems().contains(socketInfo.toString()))
+                            serverBox.getItems().add(0, socketInfo.toString());
 
+                        serverBox.getItems().set(0, socketInfo.toString());
+
+
+                    } catch (NotSerializableException ex) {
+                        ex.printStackTrace();
+                    } catch (ClassNotFoundException ex) {
+                        ex.printStackTrace();
+                    } catch (IOException ex) {
+                        ex.printStackTrace();
                     }
-                } catch (IOException e) {
-                    throw new RuntimeException(e);
-                } catch (ClassNotFoundException f) {
-                    f.printStackTrace();
-                }
+
+
+                }).start();
 
             });
+
+
+            serverBox.setValue("please select a Server");
+            serverBox.setPrefSize(400, 20);
 
 
             root.getChildren().add(serverBox);
