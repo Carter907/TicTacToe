@@ -2,7 +2,6 @@ package com.tacer.tic_tac_toe;
 
 import javafx.application.Application;
 import javafx.application.Platform;
-import javafx.collections.ObservableArray;
 import javafx.geometry.Insets;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
@@ -21,8 +20,6 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.Arrays;
 import java.util.Date;
-import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -42,8 +39,7 @@ public class Server extends Application {
     private Label title;
     private Button reset;
     private Pane top;
-
-
+    private String[][] gameCells = new String[3][3];
     private ScrollPane right;
     private Scene scene;
 
@@ -62,9 +58,12 @@ public class Server extends Application {
         for (int row = 0; row < 3; row++) {
             for (int col = 0; col < 3; col++) {
 
-                board.add(new Cell(row, col), col, row);
+                board.add(new ServerCell(row, col), col, row);
             }
         }
+
+        Arrays.fill(gameCells, new String[]{"","",""});
+
 
         title = new Label("Tic Tac Toe!");
         title.translateXProperty().bind(root.widthProperty().divide(2).subtract(80));
@@ -92,16 +91,18 @@ public class Server extends Application {
             }
         });
 
-
+        // Start of Menus
         MenuBar menuBar = new MenuBar();
 
+        // Start of boardMenu
         Menu boardMenu = new Menu("Board");
 
-        MenuItem resetBoard = new MenuItem("reset board", new ImageView(Server.class.getResource("Assets/clearBoard.png").toExternalForm()));
+        MenuItem resetBoard = new MenuItem("reset board",
+                new ImageView(Server.class.getResource("Assets/clearBoard.png").toExternalForm()));
         resetBoard.setOnAction(e -> {
 
-            for (Cell[] cellRow : Cell.cells) {
-                for (Cell c : cellRow) {
+            for (ServerCell[] cellRow : ServerCell.cells) {
+                for (ServerCell c : cellRow) {
                     c.setValue(null);
                     c.setText(null);
 
@@ -111,14 +112,41 @@ public class Server extends Application {
         boardMenu.getItems().addAll(resetBoard);
         menuBar.getMenus().add(boardMenu);
 
+        // Start of Server Menu
+
         Menu server = new Menu("Server");
 
-        MenuItem resetCapacity = new MenuItem("reset capacity", new ImageView(Server.class.getResource("Assets/Admin.png").toExternalForm()));
-        resetCapacity.setOnAction(e -> {playersConnected = new Player[]{new Player(Player.Team.NO_TEAM, false), new Player(Player.Team.NO_TEAM, false)};
-        });
-        MenuItem checkCapacity = new MenuItem("check capacity", new ImageView(Server.class.getResource("Assets/QuestionMark.png").toExternalForm()));
-        checkCapacity.setOnAction(e -> {sendMessage(Arrays.toString(playersConnected));});
+        MenuItem resetCapacity = new MenuItem("reset capacity",
+                new ImageView(Server.class.getResource("Assets/Admin.png").toExternalForm()));
 
+        resetCapacity.setOnAction(e -> {
+            playersConnected = new Player[]{new Player(Player.Team.NO_TEAM, false),
+                new Player(Player.Team.NO_TEAM, false)};
+        });
+
+        MenuItem checkCapacity = new MenuItem("check capacity",
+                new ImageView(Server.class.getResource("Assets/QuestionMark.png").toExternalForm()));
+
+        checkCapacity.setOnAction(e -> {
+            sendMessage(String.format("Player 1: %s%nPlayer 2: %s", playersConnected[0], playersConnected[1]));
+        });
+
+
+        // End of "Server" Menu
+        // Start of "Messages" Menu
+
+        Menu messageMenu = new Menu("Messages");
+
+        MenuItem clearMessage = new MenuItem("clear messages",
+                new ImageView(Server.class.getResource("Assets/clearServerMessages.png").toExternalForm()));
+
+        clearMessage.setOnAction(e -> {serverText.setText("Started server on " + new Date());});
+
+        menuBar.getMenus().add(messageMenu);
+
+        messageMenu.getItems().add(clearMessage);
+
+        // End of "Messages" Menu
         server.getItems().addAll(resetCapacity, checkCapacity);
         menuBar.getMenus().add(server);
 
@@ -129,7 +157,7 @@ public class Server extends Application {
 
         // right of root
 
-        serverText = new TextArea("started server on " + new Date());
+        serverText = new TextArea("Started server on " + new Date());
         serverText.setStyle("-fx-fill: black;-fx-border-color: green;-fx-text-fill: black;-fx-highlight-fill: yellow");
         serverText.setPrefHeight(275);
         serverText.setBackground(Styling.Backgrounds.LIGHT_GRAY.getBackground());
@@ -143,8 +171,8 @@ public class Server extends Application {
 
         scene = new Scene(root, 800, 400);
         scene.getStylesheets().add(getClass().getResource("application.css").toExternalForm());
-        Cell.windowHeight.bind(scene.heightProperty());
-        Cell.windowWidth.bind(scene.widthProperty());
+        ServerCell.windowHeight.bind(scene.heightProperty());
+        ServerCell.windowWidth.bind(scene.widthProperty());
 
         window = stage;
         window.setScene(scene);
@@ -187,7 +215,7 @@ public class Server extends Application {
 
     }
     public Player connectPlayer(Player player) {
-
+        sendMessage("\n\n\n player inside 'connectPlayer': " + player);
         for (int i = 0; i < playersConnected.length; i++) {
             if (playersConnected[i].getTeam() == Player.Team.NO_TEAM) {
                 player.setConnection(true);
@@ -208,8 +236,24 @@ public class Server extends Application {
         }
         throw new RuntimeException("could not disconnect player");
     }
+    public String[][] checkCells(String[][] cells) {
 
-    public Player[] getplayersConnected() {
+        String[][] unCheckedCells = cells;
+
+        for (int row = 0; row < gameCells.length; row++) {
+            for (int col = 0; col < gameCells[row].length; col++) {
+
+                gameCells[row][col] = cells[row][col];
+            }
+
+        }
+
+
+
+        return cells;
+    }
+
+    public Player[] getPlayersConnected() {
 
         return playersConnected;
     }
@@ -222,6 +266,14 @@ public class Server extends Application {
 
     }
 
+
+    public String[][] getGameCells() {
+        return gameCells;
+    }
+
+    public void setGameCells(String[][] gameCells) {
+        this.gameCells = gameCells;
+    }
     public ScrollPane getRight() {
         return right;
     }

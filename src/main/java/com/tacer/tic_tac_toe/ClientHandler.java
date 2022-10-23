@@ -9,6 +9,7 @@ import java.net.SocketException;
 import java.util.Arrays;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
+import java.util.stream.Stream;
 
 public class ClientHandler implements Runnable {
     private Socket user;
@@ -53,7 +54,7 @@ public class ClientHandler implements Runnable {
 
                     server.sendMessage("removing player: " + disconnectPlayer);
 
-                    server.sendMessage(Arrays.toString(server.getplayersConnected()));
+                    server.sendMessage(Arrays.toString(server.getPlayersConnected()));
 
 
                     toUser.writeObject(disconnectPlayer);
@@ -68,9 +69,28 @@ public class ClientHandler implements Runnable {
 
                     player = server.connectPlayer(player);
 
-                    server.sendMessage(Arrays.toString(server.getplayersConnected()));
+                    server.sendMessage(Arrays.toString(server.getPlayersConnected()));
 
                     toUser.writeObject(player);
+                    toUser.flush();
+                    continue;
+                }
+                if (serverRequest.getRequest().equals("SEND_BOARD")) {
+                    server.sendMessage("Client is requesting to send board (" + serverRequest.getRequest()+ ")");
+
+                    String[][] cells = (String[][]) fromUser.readObject();
+
+                    System.out.println("object Received: ");
+                    Stream.of(cells).forEach(cArr -> System.out.println(Arrays.toString(cArr)));
+                    cells = server.checkCells(cells);
+
+                    StringBuilder boardToSend = new StringBuilder("");
+
+                    Stream.of(cells).forEach(c -> boardToSend.append(" " +Arrays.toString(c)));
+
+                    server.sendMessage("Sending board to client: " + boardToSend);
+
+                    toUser.writeObject(cells);
                     toUser.flush();
                     continue;
                 }

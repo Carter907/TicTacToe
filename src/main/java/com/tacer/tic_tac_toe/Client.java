@@ -33,17 +33,17 @@ import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Stream;
 
 
 public class Client extends Application {
 
 
-    public static Stage window;
-    private static ObjectOutputStream toServer = null;
-    private static ObjectInputStream fromServer = null;
+    public Stage window;
+    private ObjectOutputStream toServer = null;
+    private ObjectInputStream fromServer = null;
     private String team = "";
-
 
     public static void main(String[] args) {
 
@@ -54,7 +54,7 @@ public class Client extends Application {
     public void start(Stage stage) {
 
         window = stage;
-        window.setScene(Display.setTitleScreen());
+        window.setScene(this.new Display(500, 400).setTitleScreen());
         window.setTitle("Tic Tac Toe (Client)");
         window.show();
 
@@ -80,12 +80,23 @@ public class Client extends Application {
 
     private class Display {
         private static ExecutorService serverHandler = Executors.newCachedThreadPool();
-        public static int width = 500;
-        public static int height = 400;
+        private int width;
+        private int height;
+        private BlockingQueue<ServerRequest> serverQueue;
+        private Player player;
+        private Client client;
 
-        public static Scene setTitleScreen() {
+        public Display(int width, int height) {
+            client = Client.this;
+            this.width = width;
+            this.height = height;
+            this.player = null;
+            this.serverQueue = new ArrayBlockingQueue<>(1, true);
+        }
 
+        public Scene setTitleScreen() {
 
+            System.out.println(client);
             BorderPane root = new BorderPane();
 
 
@@ -104,18 +115,18 @@ public class Client extends Application {
 
             joinServer.setPrefHeight(50);
             joinServer.setOnAction(e -> {
-                Client.window.setScene(setServerScreen());
+                window.setScene(setServerScreen());
             });
 
             center.getChildren().addAll(title, joinServer);
 
             root.setCenter(center);
 
-            Scene scene = new Scene(root, Display.width, Display.height);
+            Scene scene = new Scene(root, width, height);
             return scene;
         }
 
-        public static Scene setServerScreen() {
+        public Scene setServerScreen() {
 
 
             VBox root = new VBox();
@@ -140,7 +151,7 @@ public class Client extends Application {
 
             root.getChildren().add(serverBox);
 
-            Scene scene = new Scene(root, Display.width, Display.height);
+            Scene scene = new Scene(root, width, height);
 
 
             serverHandler.execute(() -> {
@@ -197,7 +208,7 @@ public class Client extends Application {
             return scene;
         }
 
-        public static Scene setGame(Player player) {
+        public Scene setGame() {
 
             BorderPane root = new BorderPane();
             root.setPadding(new Insets(30, 30, 30, 30));
@@ -209,12 +220,54 @@ public class Client extends Application {
             board.setHgap(4);
             board.setVgap(4);
 
+            LabelCell.turn.setValue(player.getTurn());
+            System.out.println(player.getTurn());
             for (int row = 0; row < 3; row++) {
                 for (int col = 0; col < 3; col++) {
 
-                    board.add(new Cell(row, col), col, row);
+                    board.add(new LabelCell(row, col, player.getTeam()), col, row);
                 }
             }
+
+
+            LabelCell.turn.addListener(o -> {
+                serverHandler.execute(() -> {
+                    try {
+                        toServer.writeObject(new ServerRequest(ServerRequest.RequestType.SEND_BOARD));
+                        toServer.flush();
+
+                        String[][] cellsToSend = LabelCell.matrixToString(LabelCell.cells);
+                        System.out.println("object sent: ");
+                        Stream.of(cellsToSend).forEach(cArr -> {
+                            System.out.println(Arrays.toString(cArr));
+                        });
+                        toServer.writeObject(cellsToSend);
+                        toServer.flush();
+
+                        String[][] newBoard = (String[][]) fromServer.readObject();
+
+                        System.out.println("after reading");
+                        Stream.of(board.getChildren()).forEach(System.out::println);
+                        Platform.runLater(() -> {
+
+                            for (int i = 0; i < newBoard.length * newBoard[1].length; i++) {
+
+                                LabelCell c = (LabelCell) board.getChildren().get(i);
+                                c.setValue(newBoard[i / 3][i % 3]);
+
+                            }
+
+                        });
+
+                    } catch (IOException f) {
+                        f.printStackTrace();
+                    } catch (ClassNotFoundException g) {
+                        g.printStackTrace();
+                    }
+
+                });
+            });
+
 
             Label title = new Label("Tic Tac Toe!");
             title.translateXProperty().bind(root.widthProperty().divide(2).subtract(80));
@@ -223,9 +276,10 @@ public class Client extends Application {
             Platform.runLater(() -> Display.animatedTitle(title));
             Button reset = new Button("reset board");
             reset.setId("reset-btn");
+
             reset.setOnAction(e -> {
 
-                new Thread(() -> {
+                serverHandler.execute(() -> {
 
                     try {
 
@@ -237,38 +291,23 @@ public class Client extends Application {
                         System.out.println("before reading");
 
                         //Creating the object that will back the GridPane representing the board
-                        Cell[][] cells = (Cell[][]) fromServer.readObject();
+                        String[][] newBoard = (String[][]) fromServer.readObject();
                         //Creating the styling for the Transient fields
-                        Platform.runLater(() -> {
-                            Cell.setCellFunctionality(cells);
-                        });
-
-
-                        Stream.of(cells).forEach(cArr -> System.out.println(Arrays.toString(cArr)));
+                        Stream.of(newBoard).forEach(cArr -> System.out.println(Arrays.toString(cArr)));
                         System.out.println("after reading");
+                        Stream.of(board.getChildren()).forEach(System.out::println);
                         Platform.runLater(() -> {
-                            Cell.cells = cells;
-                            Stream.of(Cell.cells).forEach(cArr -> System.out.println(Arrays.toString(cArr)));
-                            board.getChildren().clear();
-                            for (int row = 0; row < Cell.cells.length; row++) {
-                                for (int col = 0; col < Cell.cells.length; col++) {
-                                    board.add(Cell.cells[row][col], col, row);
+
+                            for (int row = 0; row < newBoard.length; row++) {
+                                for (int col = 0; col < newBoard[row].length; col++) {
+                                    LabelCell c = (LabelCell) board.getChildren().get((col + (row * col)));
+                                    c.setValue(newBoard[row][col]);
+
+
                                 }
-
-
                             }
-                            Stream.of(board.getChildren()).forEach(System.out::println);
+
                         });
-//                        Platform.runLater(() -> {
-//                            board.getChildren().clear();
-//                            for (int row = 0; row < cells.length; row++) {
-//                                for (int col = 0; col < cells[row].length; col++) {
-//
-//                                    board.add(cells[row][col],col,row);
-//                                }
-//                            }
-//
-//                        });
 
                     } catch (IOException f) {
                         f.printStackTrace();
@@ -276,7 +315,7 @@ public class Client extends Application {
                         g.printStackTrace();
                     }
 
-                }).start();
+                });
 
 
             });
@@ -288,10 +327,10 @@ public class Client extends Application {
 
             root.setCenter(board);
 
-            Scene scene = new Scene(root, Display.width, Display.height);
+            Scene scene = new Scene(root, width, height);
             scene.getStylesheets().add(Client.class.getResource("application.css").toExternalForm());
-            Cell.windowHeight.bind(scene.heightProperty());
-            Cell.windowWidth.bind(scene.widthProperty());
+            LabelCell.windowHeight.bind(scene.heightProperty());
+            LabelCell.windowWidth.bind(scene.widthProperty());
 
             Runtime.getRuntime().addShutdownHook(new Thread(() -> {
 
@@ -333,18 +372,21 @@ public class Client extends Application {
             return scene;
         }
 
-        public static Scene pickTeam() {
+        // START OF SETGAME()
+
+
+        public Scene pickTeam() {
 
 
             Label xTeamText = new Label("X");
             Label oTeamText = new Label("O");
             Rectangle oTeam = new Rectangle(0, 0, 250, 500);
             Rectangle xTeam = new Rectangle(250, 0, 250, 500);
-            BlockingQueue<ServerRequest> serverQueue = new ArrayBlockingQueue<>(1, true);
-
 
             Pane root = new Pane();
             root.setPadding(new Insets(10, 0, 0, 0));
+
+            AtomicBoolean playerTurn = new AtomicBoolean(false);
 
             root.setOnMouseClicked(e -> {
 
@@ -355,18 +397,22 @@ public class Client extends Application {
 
                     serverHandler.execute(() -> {
                         try {
-                            System.out.println("writing player...");
+
+                            boolean capturedTurn = playerTurn.get();
+
+                            System.out.println("player's turn is " + capturedTurn);
+
                             toServer.writeObject(new ServerRequest(ServerRequest.RequestType.ADD_PLAYER));
                             toServer.flush();
-                            Player player = new Player(Player.Team.O_TEAM, false);
+                            Player player = new Player(Player.Team.O_TEAM, false, capturedTurn);
 
                             toServer.writeObject(player);
                             toServer.flush();
 
                             Player playerAdded = (Player) fromServer.readObject();
-
+                            this.player = playerAdded;
                             Platform.runLater(() -> {
-                                window.setScene(setGame(playerAdded));
+                                window.setScene(setGame());
                             });
 
                             System.out.println("Player added: " + playerAdded);
@@ -384,22 +430,24 @@ public class Client extends Application {
                     serverHandler.execute(() -> {
 
                         try {
-                            System.out.println("writing player...");
+                            boolean capturedTurn = playerTurn.get();
+                            System.out.println("player's turn is " + capturedTurn);
+
                             toServer.writeObject(new ServerRequest(ServerRequest.RequestType.ADD_PLAYER));
                             toServer.flush();
-                            Player player = new Player(Player.Team.X_TEAM, false);
+                            Player player = new Player(Player.Team.X_TEAM, false, capturedTurn);
 
                             toServer.writeObject(player);
                             toServer.flush();
 
                             Player playerAdded = (Player) fromServer.readObject();
-
+                            this.player = playerAdded;
                             Platform.runLater(() -> {
-                                window.setScene(setGame(playerAdded));
+                                window.setScene(setGame());
                             });
 
                             System.out.println("Player added: " + playerAdded);
-                        }  catch (IOException ex) {
+                        } catch (IOException ex) {
                             ex.printStackTrace();
                         } catch (ClassNotFoundException ex) {
                             ex.printStackTrace();
@@ -413,7 +461,8 @@ public class Client extends Application {
 
             Scene scene = new Scene(root, 500, 500);
 
-            serverHandler.execute(() -> {
+
+            Runnable checkCapacity = () -> {
                 new Thread(() -> {
                     try {
                         while (true) {
@@ -462,11 +511,10 @@ public class Client extends Application {
 
                     }
                     //System.out.println(capacity);
-
                     switch (capacity) {
                         case "OPEN" -> {
                             Platform.runLater(() -> {
-
+                                playerTurn.set(true);
                                 oTeam.setFill(Color.BLUE);
 
                                 xTeam.setFill(Color.RED);
@@ -480,11 +528,14 @@ public class Client extends Application {
                                 xTeamText.setTranslateX(375 - 40);
                                 xTeamText.setTranslateY(250 - 40);
                                 xTeamText.setFont(Styling.FontPresets.REGULAR_LARGE.getFont());
+
+
                             });
 
                         }
                         case "FULL" -> {
                             Platform.runLater(() -> {
+                                playerTurn.set(false);
                                 oTeam.setFill(Color.GRAY);
 
                                 xTeam.setFill(Color.GRAY);
@@ -506,6 +557,7 @@ public class Client extends Application {
                         case "O_TAKEN" -> {
 
                             Platform.runLater(() -> {
+                                playerTurn.set(false);
                                 oTeam.setFill(Color.GRAY);
 
                                 xTeam.setFill(Color.RED);
@@ -526,6 +578,7 @@ public class Client extends Application {
                         case "X_TAKEN" -> {
 
                             Platform.runLater(() -> {
+                                playerTurn.set(false);
                                 oTeam.setFill(Color.BLUE);
 
                                 xTeam.setFill(Color.GRAY);
@@ -555,10 +608,13 @@ public class Client extends Application {
 
                         }
                     }
+
+
                 }
 
 
-            });
+            };
+            serverHandler.execute(checkCapacity);
 
 
             return scene;

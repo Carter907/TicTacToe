@@ -14,8 +14,7 @@ public class ServerRequest implements Serializable {
         CHECK_PLAYERS,
         ADD_PLAYER,
         DISCONNECT_PLAYER,
-        ADD_X,
-        ADD_O;
+        SEND_BOARD;
     }
 
     private String request;
@@ -61,38 +60,21 @@ public class ServerRequest implements Serializable {
 
                 return checkPlayers(server);
             }
+
         }
         System.out.println(request + " didn't match");
         return new Object();
     }
 
     private Player[] checkPlayers(Server server) {
-        Player[] players = Arrays.copyOf(server.getplayersConnected(),2);
+        Player[] players = Arrays.copyOf(server.getPlayersConnected(),2);
 
         return players;
     }
 
-    private Cell[][] resetBoard(Server server) {
+    private String[][] resetBoard(Server server) {
 
-        for (Cell[] cArr : Cell.cells) {
-            for (Cell c : cArr) {
-
-                c.setValue(null);
-                c.setText(null);
-            }
-        }
-
-        server.getBoard().getChildren().forEach(c -> {
-            Cell cell = (Cell) c;
-            cell.setValue(null);
-            cell.setText(null);
-        });
-
-
-        System.out.println(Cell.cells);
-
-
-        return Cell.cells;
+        return new String[3][3];
 
     }
 }
