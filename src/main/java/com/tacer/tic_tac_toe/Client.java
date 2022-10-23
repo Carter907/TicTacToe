@@ -10,7 +10,11 @@ import javafx.scene.control.Button;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
 import javafx.scene.image.Image;
-import javafx.scene.layout.*;
+import javafx.scene.image.ImageView;
+import javafx.scene.layout.BorderPane;
+import javafx.scene.layout.GridPane;
+import javafx.scene.layout.Pane;
+import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Rectangle;
 import javafx.scene.text.Font;
@@ -29,9 +33,6 @@ import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.locks.Condition;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
 import java.util.stream.Stream;
 
 
@@ -79,9 +80,6 @@ public class Client extends Application {
 
     private class Display {
         private static ExecutorService serverHandler = Executors.newCachedThreadPool();
-        private static Lock serverLock = new ReentrantLock(true);
-
-        private static Condition serverCheck = serverLock.newCondition();
         public static int width = 500;
         public static int height = 400;
 
@@ -91,18 +89,18 @@ public class Client extends Application {
             BorderPane root = new BorderPane();
 
 
-            root.setBackground(Styling.Backgrounds.SKY_BLUE.getBackground());
+            root.setBackground(Styling.Backgrounds.LIGHT_GRAY.getBackground());
             VBox center = new VBox();
             center.setSpacing(40);
             center.setAlignment(Pos.CENTER);
 
-            Label title = new Label("Welcome to Tic Tac Toe");
+            Label title = new Label("Welcome to Tic Tac Toe", new ImageView(new Image(Client.class.getResource("Assets/Backgrounds/TicTac.png").toExternalForm())));
             title.setFont(Font.font("Times New Roman", FontWeight.BOLD, FontPosture.REGULAR, 40));
             Display.serverHandler.execute(animatedTitle(title));
 
             Button joinServer = new Button("Join a game");
-            joinServer.setStyle("-fx-background-color: #dedede;");
-            joinServer.setFont(FontPresets.REGULAR.getFont());
+            joinServer.setBackground(Styling.Backgrounds.SILVER.getBackground());
+            joinServer.setFont(Styling.FontPresets.REGULAR.getFont());
 
             joinServer.setPrefHeight(50);
             joinServer.setOnAction(e -> {
@@ -123,12 +121,12 @@ public class Client extends Application {
             VBox root = new VBox();
             root.setAlignment(Pos.CENTER);
 
-            root.setBackground(Styling.Backgrounds.SERVER_BG.getBackground());
+            root.setBackground(Styling.Backgrounds.LIGHT_GRAY.getBackground());
 
 
             ComboBox<String> serverBox = new ComboBox<>();
             serverBox.setStyle("-fx-text-fill: white;");
-            serverBox.setBackground(Styling.Backgrounds.LIGHT_GRAY.getBackground());
+            serverBox.setBackground(Styling.Backgrounds.SILVER.getBackground());
             serverBox.setOnAction(e -> {
 
                 System.out.println(Thread.currentThread().getName());
@@ -136,8 +134,6 @@ public class Client extends Application {
 
 
             });
-
-            System.out.println("code running on the main thread outside of the setOnAction");
             serverBox.setValue("please select a Server");
             serverBox.setPrefSize(400, 20);
 
@@ -375,17 +371,11 @@ public class Client extends Application {
 
                             System.out.println("Player added: " + playerAdded);
 
-                            serverQueue.put(new ServerRequest(ServerRequest.RequestType.CHECK_PLAYERS));
-
-
                         } catch (ClassNotFoundException ex) {
                             ex.printStackTrace();
                         } catch (IOException ex) {
                             ex.printStackTrace();
-                        } catch (InterruptedException ex) {
-                            ex.printStackTrace();
                         }
-
                     });
 
                 } else if (xTeam.getBoundsInParent().contains(ePoint) && !xTeamText.getText().equals("FULL")) {
@@ -398,181 +388,173 @@ public class Client extends Application {
                             toServer.writeObject(new ServerRequest(ServerRequest.RequestType.ADD_PLAYER));
                             toServer.flush();
                             Player player = new Player(Player.Team.X_TEAM, false);
-                            Platform.runLater(() -> window.setScene(setGame(player)));
-
 
                             toServer.writeObject(player);
                             toServer.flush();
+
                             Player playerAdded = (Player) fromServer.readObject();
-                            System.out.println("player added" + playerAdded);
 
-                            serverQueue.put(new ServerRequest(ServerRequest.RequestType.CHECK_PLAYERS));
+                            Platform.runLater(() -> {
+                                window.setScene(setGame(playerAdded));
+                            });
 
+                            System.out.println("Player added: " + playerAdded);
+                        }  catch (IOException ex) {
+                            ex.printStackTrace();
                         } catch (ClassNotFoundException ex) {
-                            ex.printStackTrace();
-                        } catch (IOException ex) {
-                            ex.printStackTrace();
-                        } catch (InterruptedException ex) {
                             ex.printStackTrace();
                         }
                     });
                 }
             });
-            Button checkCapacity = new Button("check capacity");
 
-            checkCapacity.setOnAction(e -> {
-                try {
-                    serverQueue.put(new ServerRequest(ServerRequest.RequestType.CHECK_PLAYERS));
 
-                } catch (InterruptedException ex) {
-                    ex.printStackTrace();
-                }
-            });
-
-            root.getChildren().addAll(xTeam, xTeamText, oTeam, oTeamText, checkCapacity);
+            root.getChildren().addAll(xTeam, xTeamText, oTeam, oTeamText);
 
             Scene scene = new Scene(root, 500, 500);
 
             serverHandler.execute(() -> {
-
-                try {
-
-                    Player[] serverPlayers = {new Player(Player.Team.NO_TEAM, false), new Player(Player.Team.NO_TEAM, false)};
-                    serverQueue.put(new ServerRequest(ServerRequest.RequestType.CHECK_PLAYERS));
-                    while (true) {
-                        Thread.sleep(1000);
-                        if (window.getScene() != scene)
-                            break;
-                        String capacity = "";
-                        try {
-                            System.out.println("getting players...");
-                            toServer.writeObject(serverQueue.take());
-                            toServer.flush();
-
-                            serverPlayers = (Player[]) fromServer.readObject();
-                            System.out.println(Arrays.toString(serverPlayers));
-
-
-                        } catch (ClassNotFoundException ex) {
-                            ex.printStackTrace();
-                        } catch (IOException ex) {
-                            ex.printStackTrace();
-                        }
-
-
-                        capacity = "";
-                        for (int i = 0; i < serverPlayers.length; i++) {
-
-                            if (serverPlayers[i].getTeam() != Player.Team.NO_TEAM && capacity.matches("[OX]_TAKEN")) {
-                                capacity = "FULL";
-                            } else if (serverPlayers[i].getTeam() == Player.Team.NO_TEAM && capacity.matches("()|(OPEN)")) {
-                                capacity = "OPEN";
-                            } else if (serverPlayers[i].getTeam() == Player.Team.X_TEAM) {
-                                capacity = "X_TAKEN";
-                            } else if (serverPlayers[i].getTeam() == Player.Team.O_TEAM) {
-                                capacity = "O_TAKEN";
-
-                            }
+                new Thread(() -> {
+                    try {
+                        while (true) {
+                            Thread.sleep(100);
+                            serverQueue.put(new ServerRequest(ServerRequest.RequestType.CHECK_PLAYERS));
 
                         }
-                        //System.out.println(capacity);
-
-                        switch (capacity) {
-                            case "OPEN" -> {
-                                Platform.runLater(() -> {
-
-                                    oTeam.setFill(Color.BLUE);
-
-                                    xTeam.setFill(Color.RED);
-
-                                    oTeamText.setText("O");
-                                    oTeamText.setTranslateX(125 - 40);
-                                    oTeamText.setTranslateY(250 - 40);
-                                    oTeamText.setFont(FontPresets.REGULAR_LARGE.getFont());
-
-                                    xTeamText.setText("X");
-                                    xTeamText.setTranslateX(375 - 40);
-                                    xTeamText.setTranslateY(250 - 40);
-                                    xTeamText.setFont(FontPresets.REGULAR_LARGE.getFont());
-                                });
-
-                            }
-                            case "FULL" -> {
-                                Platform.runLater(() -> {
-                                    oTeam.setFill(Color.GRAY);
-
-                                    xTeam.setFill(Color.GRAY);
-
-                                    oTeamText.setText("FULL");
-                                    oTeamText.setTranslateX(125 - 80);
-                                    oTeamText.setTranslateY(250 - 40);
-                                    oTeamText.setFont(FontPresets.FULL_FONT.getFont());
-
-
-                                    xTeamText.setText("FULL");
-                                    xTeamText.setTranslateX(375 - 80);
-                                    xTeamText.setTranslateY(250 - 40);
-                                    xTeamText.setFont(FontPresets.FULL_FONT.getFont());
-                                });
-
-
-                            }
-                            case "O_TAKEN" -> {
-
-                                Platform.runLater(() -> {
-                                    oTeam.setFill(Color.GRAY);
-
-                                    xTeam.setFill(Color.RED);
-
-                                    oTeamText.setText("FULL");
-                                    oTeamText.setTranslateX(125 - 80);
-                                    oTeamText.setTranslateY(250 - 40);
-                                    oTeamText.setFont(FontPresets.FULL_FONT.getFont());
-
-
-                                    xTeamText.setText("X");
-                                    xTeamText.setTranslateX(375 - 40);
-                                    xTeamText.setTranslateY(250 - 40);
-                                    xTeamText.setFont(FontPresets.REGULAR_LARGE.getFont());
-                                });
-
-                            }
-                            case "X_TAKEN" -> {
-
-                                Platform.runLater(() -> {
-                                    oTeam.setFill(Color.BLUE);
-
-                                    xTeam.setFill(Color.GRAY);
-
-                                    oTeamText.setText("O");
-                                    oTeamText.setTranslateX(125 - 40);
-                                    oTeamText.setTranslateY(250 - 40);
-                                    oTeamText.setFont(FontPresets.REGULAR_LARGE.getFont());
-
-                                    xTeamText.setText("FULL");
-                                    xTeamText.setTranslateX(375 - 80);
-                                    xTeamText.setTranslateY(250 - 40);
-                                    xTeamText.setFont(FontPresets.FULL_FONT.getFont());
-                                });
-
-
-                            }
-                            default -> {
-                                Platform.runLater(() -> {
-                                    oTeam.setFill(Color.WHITE);
-                                    oTeamText.setFont(FontPresets.REGULAR_LARGE.getFont());
-
-                                    xTeam.setFill(Color.WHITE);
-                                    xTeamText.setFont(FontPresets.REGULAR_LARGE.getFont());
-                                    System.out.println("incorrect String or could not get player info");
-                                });
-
-                            }
-                        }
+                    } catch (InterruptedException e) {
+                        throw new RuntimeException(e);
                     }
 
-                } catch (InterruptedException ex) {
-                    System.err.println("blockquote interrupted");
+                }).start();
+                Player[] serverPlayers = new Player[2];
+                while (true) {
+
+                    if (window.getScene() != scene)
+                        break;
+                    String capacity = "";
+                    try {
+                        toServer.writeObject(serverQueue.take());
+
+                        serverPlayers = (Player[]) fromServer.readObject();
+
+                    } catch (ClassNotFoundException ex) {
+                        ex.printStackTrace();
+                    } catch (IOException ex) {
+                        ex.printStackTrace();
+                    } catch (InterruptedException e) {
+                        throw new RuntimeException(e);
+                    }
+
+
+                    capacity = "";
+                    for (int i = 0; i < serverPlayers.length; i++) {
+
+                        if (serverPlayers[i].getTeam() != Player.Team.NO_TEAM && capacity.matches("[OX]_TAKEN")) {
+                            capacity = "FULL";
+                        } else if (serverPlayers[i].getTeam() == Player.Team.NO_TEAM && capacity.matches("()|(OPEN)")) {
+                            capacity = "OPEN";
+                        } else if (serverPlayers[i].getTeam() == Player.Team.X_TEAM) {
+                            capacity = "X_TAKEN";
+                        } else if (serverPlayers[i].getTeam() == Player.Team.O_TEAM) {
+                            capacity = "O_TAKEN";
+
+                        }
+
+                    }
+                    //System.out.println(capacity);
+
+                    switch (capacity) {
+                        case "OPEN" -> {
+                            Platform.runLater(() -> {
+
+                                oTeam.setFill(Color.BLUE);
+
+                                xTeam.setFill(Color.RED);
+
+                                oTeamText.setText("O");
+                                oTeamText.setTranslateX(125 - 40);
+                                oTeamText.setTranslateY(250 - 40);
+                                oTeamText.setFont(Styling.FontPresets.REGULAR_LARGE.getFont());
+
+                                xTeamText.setText("X");
+                                xTeamText.setTranslateX(375 - 40);
+                                xTeamText.setTranslateY(250 - 40);
+                                xTeamText.setFont(Styling.FontPresets.REGULAR_LARGE.getFont());
+                            });
+
+                        }
+                        case "FULL" -> {
+                            Platform.runLater(() -> {
+                                oTeam.setFill(Color.GRAY);
+
+                                xTeam.setFill(Color.GRAY);
+
+                                oTeamText.setText("FULL");
+                                oTeamText.setTranslateX(125 - 80);
+                                oTeamText.setTranslateY(250 - 40);
+                                oTeamText.setFont(Styling.FontPresets.FULL_FONT.getFont());
+
+
+                                xTeamText.setText("FULL");
+                                xTeamText.setTranslateX(375 - 80);
+                                xTeamText.setTranslateY(250 - 40);
+                                xTeamText.setFont(Styling.FontPresets.FULL_FONT.getFont());
+                            });
+
+
+                        }
+                        case "O_TAKEN" -> {
+
+                            Platform.runLater(() -> {
+                                oTeam.setFill(Color.GRAY);
+
+                                xTeam.setFill(Color.RED);
+
+                                oTeamText.setText("FULL");
+                                oTeamText.setTranslateX(125 - 80);
+                                oTeamText.setTranslateY(250 - 40);
+                                oTeamText.setFont(Styling.FontPresets.FULL_FONT.getFont());
+
+
+                                xTeamText.setText("X");
+                                xTeamText.setTranslateX(375 - 40);
+                                xTeamText.setTranslateY(250 - 40);
+                                xTeamText.setFont(Styling.FontPresets.REGULAR_LARGE.getFont());
+                            });
+
+                        }
+                        case "X_TAKEN" -> {
+
+                            Platform.runLater(() -> {
+                                oTeam.setFill(Color.BLUE);
+
+                                xTeam.setFill(Color.GRAY);
+
+                                oTeamText.setText("O");
+                                oTeamText.setTranslateX(125 - 40);
+                                oTeamText.setTranslateY(250 - 40);
+                                oTeamText.setFont(Styling.FontPresets.REGULAR_LARGE.getFont());
+
+                                xTeamText.setText("FULL");
+                                xTeamText.setTranslateX(375 - 80);
+                                xTeamText.setTranslateY(250 - 40);
+                                xTeamText.setFont(Styling.FontPresets.FULL_FONT.getFont());
+                            });
+
+
+                        }
+                        default -> {
+                            Platform.runLater(() -> {
+                                oTeam.setFill(Color.WHITE);
+                                oTeamText.setFont(Styling.FontPresets.REGULAR_LARGE.getFont());
+
+                                xTeam.setFill(Color.WHITE);
+                                xTeamText.setFont(Styling.FontPresets.REGULAR_LARGE.getFont());
+                                System.out.println("incorrect String or could not get player info");
+                            });
+
+                        }
+                    }
                 }
 
 
@@ -581,8 +563,6 @@ public class Client extends Application {
 
             return scene;
         }
-
-
 
 
         public static Runnable animatedTitle(Label title) {

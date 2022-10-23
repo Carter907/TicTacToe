@@ -2,6 +2,7 @@ package com.tacer.tic_tac_toe;
 
 import javafx.application.Application;
 import javafx.application.Platform;
+import javafx.collections.ObservableArray;
 import javafx.geometry.Insets;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
@@ -20,6 +21,8 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.Arrays;
 import java.util.Date;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -39,7 +42,6 @@ public class Server extends Application {
     private Label title;
     private Button reset;
     private Pane top;
-
 
 
     private ScrollPane right;
@@ -89,6 +91,8 @@ public class Server extends Application {
 
             }
         });
+
+
         MenuBar menuBar = new MenuBar();
 
         Menu boardMenu = new Menu("Board");
@@ -112,7 +116,10 @@ public class Server extends Application {
         MenuItem resetCapacity = new MenuItem("reset capacity", new ImageView(Server.class.getResource("Assets/Admin.png").toExternalForm()));
         resetCapacity.setOnAction(e -> {playersConnected = new Player[]{new Player(Player.Team.NO_TEAM, false), new Player(Player.Team.NO_TEAM, false)};
         });
-        server.getItems().addAll(resetCapacity);
+        MenuItem checkCapacity = new MenuItem("check capacity", new ImageView(Server.class.getResource("Assets/QuestionMark.png").toExternalForm()));
+        checkCapacity.setOnAction(e -> {sendMessage(Arrays.toString(playersConnected));});
+
+        server.getItems().addAll(resetCapacity, checkCapacity);
         menuBar.getMenus().add(server);
 
         menuBar.setTranslateY(-40);

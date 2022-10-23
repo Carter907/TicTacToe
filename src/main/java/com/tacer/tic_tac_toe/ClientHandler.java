@@ -7,10 +7,14 @@ import java.net.InetAddress;
 import java.net.Socket;
 import java.net.SocketException;
 import java.util.Arrays;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.BlockingQueue;
 
 public class ClientHandler implements Runnable {
     private Socket user;
     private Server server;
+
+    private BlockingQueue<ServerRequest> writeRequests = new ArrayBlockingQueue<>(1, true);
 
     public ClientHandler(Server server, Socket user) {
         this.user = user;
@@ -25,17 +29,16 @@ public class ClientHandler implements Runnable {
             ObjectInputStream fromUser = new ObjectInputStream(user.getInputStream());
             ObjectOutputStream toUser = new ObjectOutputStream(user.getOutputStream());
             InetAddress userAddress = user.getInetAddress();
+
+
             while (true) {
-                System.out.println("before reading");
 
                 ServerRequest serverRequest = (ServerRequest) fromUser.readObject();
 
-                System.out.println("after reading");
 
-                server.sendMessage("Server Request from client:" + serverRequest.getRequest());
 
                 if (serverRequest.getRequest().equals("GET_INFO")) {
-
+                    server.sendMessage("Server Request from client:" + serverRequest.getRequest());
                     server.sendMessage("info request");
 
                     toUser.writeObject(userAddress);
@@ -43,7 +46,7 @@ public class ClientHandler implements Runnable {
                     continue;
                 }
                 if (serverRequest.getRequest().equals("DISCONNECT_PLAYER")) {
-
+                    server.sendMessage("Server Request from client:" + serverRequest.getRequest());
                     Player player = (Player) fromUser.readObject();
 
                     Player disconnectPlayer = server.disconnectPlayer(player);
@@ -58,7 +61,7 @@ public class ClientHandler implements Runnable {
                     continue;
                 }
                 if (serverRequest.getRequest().equals("ADD_PLAYER")) {
-
+                    server.sendMessage("Server Request from client:" + serverRequest.getRequest());
                     Player player = (Player) fromUser.readObject();
 
                     server.sendMessage("adding player: " + player);
@@ -72,9 +75,10 @@ public class ClientHandler implements Runnable {
                     continue;
                 }
 
-                System.out.println("before writing");
 
-                toUser.writeObject(serverRequest.fulfillRequest(getServer()));
+
+                Object serverData = serverRequest.fulfillRequest(server);
+                toUser.writeObject(serverData);
                 toUser.flush();
 
                 System.out.println("after writing");

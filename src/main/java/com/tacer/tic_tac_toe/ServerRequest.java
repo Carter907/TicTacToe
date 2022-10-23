@@ -3,6 +3,7 @@ package com.tacer.tic_tac_toe;
 import javafx.event.ActionEvent;
 
 import java.io.Serializable;
+import java.util.Arrays;
 
 public class ServerRequest implements Serializable {
 
@@ -66,8 +67,9 @@ public class ServerRequest implements Serializable {
     }
 
     private Player[] checkPlayers(Server server) {
+        Player[] players = Arrays.copyOf(server.getplayersConnected(),2);
 
-        return server.getplayersConnected();
+        return players;
     }
 
     private Cell[][] resetBoard(Server server) {
