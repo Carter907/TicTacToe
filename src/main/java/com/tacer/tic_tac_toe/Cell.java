@@ -96,7 +96,7 @@ public class Cell extends Label implements Serializable {
 
     }
 
-    public static Cell[][] setStyles(Cell[][] cells) {
+    public static Cell[][] setCellFunctionality(Cell[][] cells) {
         for (Cell[] cArr : cells) {
             for (Cell c : cArr) {
                 c.setText(" ");
@@ -104,10 +104,32 @@ public class Cell extends Label implements Serializable {
                 c.prefWidthProperty().bind(windowWidth);
                 c.setAlignment(Pos.CENTER);
                 c.getStyleClass().add("cell");
+                c.setOnMouseClicked(e -> {
+
+                    if (turn && c.getValue() == null) {
+                        c.setValue("X");
+                        c.setFont(Font.font(Font.getFamilies().get(17), FontWeight.BOLD, c.getPrefHeight() / 6));
+                        c.setText(c.getValue());
+                        c.setTextFill(Color.RED);
+                        Cell.turn = false;
+                        checkCells();
+
+                    } else if (c.getValue() == null) {
+                        c.setValue("O");
+
+                        c.setFont(Font.font(Font.getFamilies().get(17), FontWeight.BOLD, c.getPrefHeight() / 6));
+                        c.setText(c.getValue());
+                        c.setTextFill(Color.BLUE);
+                        Cell.turn = true;
+                        checkCells();
+                    }
+
+                });
 
             }
 
         }
+
 
         return cells;
     }

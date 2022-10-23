@@ -4,8 +4,8 @@ import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.geometry.Insets;
 import javafx.scene.Scene;
-import javafx.scene.control.Button;
-import javafx.scene.control.Label;
+import javafx.scene.control.*;
+import javafx.scene.image.ImageView;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.Pane;
@@ -18,6 +18,8 @@ import javafx.stage.Stage;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.Arrays;
+import java.util.Date;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -25,22 +27,30 @@ public class Server extends Application {
 
     public static boolean isActive = false;
     public static Stage window;
+
+    private Player[] playersConnected = {new Player(Player.Team.NO_TEAM, false), new Player(Player.Team.NO_TEAM, false)};
     public ExecutorService threadPool = Executors.newCachedThreadPool();
 
     private ExecutorService sockets = Executors.newFixedThreadPool(2);
 
     private BorderPane root;
     private GridPane board;
+    private TextArea serverText;
     private Label title;
     private Button reset;
     private Pane top;
+
+
+
+    private ScrollPane right;
     private Scene scene;
 
     @Override
     public void start(Stage stage) {
 
         root = new BorderPane();
-        root.setPadding(new Insets(30, 30, 30, 30));
+        root.setPadding(new Insets(50, 30, 30, 30));
+
 
         board = new GridPane();
         board.setStyle("-fx-background-color: darkgray;");
@@ -75,13 +85,16 @@ public class Server extends Application {
 
                     });
                 }
-            } catch (InterruptedException e) {
+            } catch (InterruptedException ex) {
 
             }
         });
-        reset = new Button("reset board");
-        reset.setId("reset-btn");
-        reset.setOnAction(e -> {
+        MenuBar menuBar = new MenuBar();
+
+        Menu boardMenu = new Menu("Board");
+
+        MenuItem resetBoard = new MenuItem("reset board", new ImageView(Server.class.getResource("Assets/clearBoard.png").toExternalForm()));
+        resetBoard.setOnAction(e -> {
 
             for (Cell[] cellRow : Cell.cells) {
                 for (Cell c : cellRow) {
@@ -90,17 +103,38 @@ public class Server extends Application {
 
                 }
             }
-
         });
+        boardMenu.getItems().addAll(resetBoard);
+        menuBar.getMenus().add(boardMenu);
+
+        Menu server = new Menu("Server");
+
+        MenuItem resetCapacity = new MenuItem("reset capacity", new ImageView(Server.class.getResource("Assets/Admin.png").toExternalForm()));
+        resetCapacity.setOnAction(e -> {playersConnected = new Player[]{new Player(Player.Team.NO_TEAM, false), new Player(Player.Team.NO_TEAM, false)};
+        });
+        server.getItems().addAll(resetCapacity);
+        menuBar.getMenus().add(server);
+
+        menuBar.setTranslateY(-40);
 
         top = new Pane();
-        top.getChildren().addAll(title, reset);
+        top.getChildren().addAll(title, menuBar);
+
+        // right of root
+
+        serverText = new TextArea("started server on " + new Date());
+        serverText.setStyle("-fx-fill: black;-fx-border-color: green;-fx-text-fill: black;-fx-highlight-fill: yellow");
+        serverText.setPrefHeight(275);
+        serverText.setBackground(Styling.Backgrounds.LIGHT_GRAY.getBackground());
+        right = new ScrollPane(serverText);
+
+
 
         root.setTop(top);
-
+        root.setRight(right);
         root.setCenter(board);
 
-        scene = new Scene(root, 400, 400);
+        scene = new Scene(root, 800, 400);
         scene.getStylesheets().add(getClass().getResource("application.css").toExternalForm());
         Cell.windowHeight.bind(scene.heightProperty());
         Cell.windowWidth.bind(scene.widthProperty());
@@ -113,7 +147,7 @@ public class Server extends Application {
         threadPool.execute(() -> {
 
             try {
-                ServerSocket serverSocket = new ServerSocket(8001);
+                ServerSocket serverSocket = new ServerSocket(8000);
                 isActive = true;
                 while (true) {
 
@@ -130,10 +164,63 @@ public class Server extends Application {
 
 
         window.setOnHidden(e -> {
-
-            this.threadPool.shutdownNow();
+            threadPool.shutdownNow();
+            sockets.shutdownNow();
+            if (!sockets.isTerminated() || !threadPool.isTerminated()) {
+                try {
+                    Thread.sleep(100);
+                } catch (InterruptedException ex) {
+                    throw new RuntimeException(ex);
+                }
+            }
+            System.out.println(threadPool);
+            System.out.println(sockets);
+            System.exit(0);
         });
 
+    }
+    public Player connectPlayer(Player player) {
+
+        for (int i = 0; i < playersConnected.length; i++) {
+            if (playersConnected[i].getTeam() == Player.Team.NO_TEAM) {
+                player.setConnection(true);
+                playersConnected[i] = player;
+                return player;
+            }
+        }
+
+        throw new RuntimeException("could not add player");
+    }
+    public Player disconnectPlayer(Player player) {
+        System.out.println(Arrays.toString(playersConnected));
+        for (int i = 0; i < playersConnected.length; i++) {
+            if (player.getTeam().equals(playersConnected[i].getTeam()) && player.isConnected()) {
+                playersConnected[i] = new Player(Player.Team.NO_TEAM, false);
+                return player;
+            }
+        }
+        throw new RuntimeException("could not disconnect player");
+    }
+
+    public Player[] getplayersConnected() {
+
+        return playersConnected;
+    }
+    public void sendMessage(String message) {
+        Platform.runLater(() -> {
+
+            this.serverText.setText(serverText.getText() + "\n" + message);
+
+        });
+
+    }
+
+    public ScrollPane getRight() {
+        return right;
+    }
+    private TextArea getServerText() {
+
+        return serverText;
     }
     public BorderPane getRoot() {
         return root;
@@ -199,9 +286,12 @@ public class Server extends Application {
         return Color.rgb(r, g, b);
     }
 
+
+
     public static void main(String[] args) {
         Server.launch(args);
     }
+
 
 
 }

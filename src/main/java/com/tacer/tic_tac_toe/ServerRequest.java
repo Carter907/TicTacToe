@@ -6,9 +6,13 @@ import java.io.Serializable;
 
 public class ServerRequest implements Serializable {
 
-    public enum Request {
+
+    public enum RequestType {
         RESET_BOARD,
         GET_INFO,
+        CHECK_PLAYERS,
+        ADD_PLAYER,
+        DISCONNECT_PLAYER,
         ADD_X,
         ADD_O;
     }
@@ -16,13 +20,17 @@ public class ServerRequest implements Serializable {
     private String request;
     private ActionEvent event;
 
-    public ServerRequest(ActionEvent event, Request request) {
-        this.request = request.toString();
+    public ServerRequest(ActionEvent event, RequestType requestType) {
+
+        this.request = requestType.toString();
         this.event = event;
+
+
     }
 
-    public ServerRequest(Request request) {
-        this.request = request.toString();
+    public ServerRequest(RequestType requestType) {
+
+        this.request = requestType.toString();
 
     }
 
@@ -39,19 +47,27 @@ public class ServerRequest implements Serializable {
         return event;
     }
 
-    public Object fulfillRequest(Server serverToFulfill) {
+    public Object fulfillRequest(Server server) {
 
 
         switch (request) {
 
             case "RESET_BOARD" -> {
-                return resetBoard(serverToFulfill);
+                return resetBoard(server);
 
             }
+            case "CHECK_PLAYERS" -> {
 
+                return checkPlayers(server);
+            }
         }
         System.out.println(request + " didn't match");
         return new Object();
+    }
+
+    private Player[] checkPlayers(Server server) {
+
+        return server.getplayersConnected();
     }
 
     private Cell[][] resetBoard(Server server) {

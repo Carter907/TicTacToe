@@ -1,19 +1,20 @@
 package com.tacer.tic_tac_toe;
 
-import java.net.*;
-import java.io.*;
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.net.InetAddress;
+import java.net.Socket;
+import java.net.SocketException;
+import java.util.Arrays;
 
 public class ClientHandler implements Runnable {
-
     private Socket user;
     private Server server;
 
-
-    public ClientHandler(Server server,Socket user) {
-
+    public ClientHandler(Server server, Socket user) {
         this.user = user;
         this.server = server;
-
     }
 
     @Override
@@ -31,11 +32,42 @@ public class ClientHandler implements Runnable {
 
                 System.out.println("after reading");
 
-                System.out.println(serverRequest.getRequest());
+                server.sendMessage("Server Request from client:" + serverRequest.getRequest());
 
                 if (serverRequest.getRequest().equals("GET_INFO")) {
-                    System.out.println("info request");
+
+                    server.sendMessage("info request");
+
                     toUser.writeObject(userAddress);
+                    toUser.flush();
+                    continue;
+                }
+                if (serverRequest.getRequest().equals("DISCONNECT_PLAYER")) {
+
+                    Player player = (Player) fromUser.readObject();
+
+                    Player disconnectPlayer = server.disconnectPlayer(player);
+
+                    server.sendMessage("removing player: " + disconnectPlayer);
+
+                    server.sendMessage(Arrays.toString(server.getplayersConnected()));
+
+
+                    toUser.writeObject(disconnectPlayer);
+                    toUser.flush();
+                    continue;
+                }
+                if (serverRequest.getRequest().equals("ADD_PLAYER")) {
+
+                    Player player = (Player) fromUser.readObject();
+
+                    server.sendMessage("adding player: " + player);
+
+                    player = server.connectPlayer(player);
+
+                    server.sendMessage(Arrays.toString(server.getplayersConnected()));
+
+                    toUser.writeObject(player);
                     toUser.flush();
                     continue;
                 }
@@ -47,17 +79,19 @@ public class ClientHandler implements Runnable {
 
                 System.out.println("after writing");
             }
+        } catch (SocketException e) {
+
+        } catch (ClassNotFoundException e) {
+            e.printStackTrace();
         } catch (IOException e) {
             e.printStackTrace();
-        } catch (ClassNotFoundException f) {
-
-            f.printStackTrace();
         }
     }
 
     private Server getServer() {
         return this.server;
     }
+
     private Socket getUser() {
         return this.user;
     }
