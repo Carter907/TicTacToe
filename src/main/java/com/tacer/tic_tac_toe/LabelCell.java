@@ -6,8 +6,10 @@ import javafx.scene.Scene;
 import javafx.scene.control.Label;
 import javafx.scene.layout.StackPane;
 import javafx.scene.paint.Color;
+import javafx.scene.shape.StrokeType;
 import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
+import javafx.scene.text.Text;
 
 import java.io.Serializable;
 import java.util.Arrays;
@@ -42,9 +44,6 @@ public class LabelCell extends Cell implements Serializable {
                 this.setValue(team.toString().substring(0, 1));
                 System.out.println(team.toString().substring(0,1));
                 turn.setValue(false);
-                checkCells();
-
-
             }
 
             System.out.println("cell value is " + "\"" + this.getValue() + "\"");
@@ -74,7 +73,7 @@ public class LabelCell extends Cell implements Serializable {
         Pattern oWon = Pattern.compile("(OOO......)|(O...O...O)|(..O.O.O..)|(.O..O..O.)|(O..O..O..)|(...OOO...)|(......OOO)|(..O..O..O)");
         String won = "";
         for (int i = 0; i < 9; i++) {
-            if (cells[i / 3][i % 3].getValue() == "")
+            if (cells[i / 3][i % 3].getValue().equals(""))
                 won = won + "n";
             else
                 won = won + cells[i / 3][i % 3].getValue();
@@ -85,7 +84,7 @@ public class LabelCell extends Cell implements Serializable {
         System.out.println(won);
         if (won.matches(xWon.pattern())) {
 
-            return "X";
+             return "X";
 
 
         } else if (won.matches(oWon.pattern())) {
@@ -96,16 +95,22 @@ public class LabelCell extends Cell implements Serializable {
         return "n";
     }
 
-    private static Scene endScreen(String won) {
+    public static Scene endScreen(String won) {
 
-        Label endTitle = new Label(won + " won in Tic Tac Toe!");
+        Text text = new Text(won + " won in Tic Tac Toe!");
 
-        StackPane endScreen = new StackPane(endTitle);
+        StackPane endScreen = new StackPane(text);
+        endScreen.setBackground(Styling.Backgrounds.LIGHT_GRAY.getBackground());
 
-        endTitle.setFont(Font.font(Font.getFamilies().get(17), FontWeight.BOLD, 40));
-        endTitle.setTextFill(Color.GREEN);
+        text.setFont(Font.font(Font.getFamilies().get(17), FontWeight.BOLD, 30));
+        text.setScaleY(1.2);
+        text.setStrokeWidth(4);
+        text.setFill(Color.BEIGE);
+        text.setStrokeType(StrokeType.OUTSIDE);
+        text.setStroke(Color.BLACK);
 
-        Scene scene = new Scene(endScreen, 300, 300);
+
+        Scene scene = new Scene(endScreen, 500, 300);
 
 
         return scene;

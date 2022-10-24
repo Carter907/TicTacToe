@@ -231,6 +231,7 @@ public class Client extends Application {
 
             serverHandler.execute(() -> {
                 try {
+
                     while (true) {
                         Thread.sleep(100);
                         toServer.writeObject(new ServerRequest(ServerRequest.RequestType.GET_BOARD));
@@ -255,6 +256,22 @@ public class Client extends Application {
                                 if (!c.getValue().equals(newBoard[i/3][i%3]))
                                     LabelCell.turn.setValue(true);
                                 c.setValue(newBoard[i / 3][i % 3]);
+                            }
+
+                        });
+                        Platform.runLater(() -> {
+                            Stream.of(LabelCell.cells).forEach(c -> System.out.println(Arrays.toString(c)));
+                            switch (LabelCell.checkCells()) {
+
+                                case "X" -> {
+                                    window.setScene(LabelCell.endScreen("X"));
+                                    serverHandler.shutdownNow();
+                                }
+
+                                case "O" -> {
+                                    window.setScene(LabelCell.endScreen("O"));
+                                    serverHandler.shutdownNow();
+                                }
                             }
                         });
 
