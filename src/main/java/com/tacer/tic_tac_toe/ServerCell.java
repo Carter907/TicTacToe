@@ -29,6 +29,7 @@ public class ServerCell extends Label {
         super("");
 
         cells[row][col] = this;
+        this.setValue("");
         this.prefHeightProperty().bind(windowHeight);
         this.prefWidthProperty().bind(windowWidth);
         this.setAlignment(Pos.CENTER);
@@ -36,7 +37,7 @@ public class ServerCell extends Label {
 
         this.setOnMouseClicked(e -> {
 
-            if (turn && this.getValue() == null) {
+            if (turn && this.getValue() == "") {
                 this.setValue("X");
                 this.setFont(Font.font(Font.getFamilies().get(17), FontWeight.BOLD, this.getPrefHeight() / 6));
                 this.setText(this.getValue());
@@ -44,7 +45,7 @@ public class ServerCell extends Label {
                 turn = false;
                 checkCells();
 
-            } else if (this.getValue() == null) {
+            } else if (this.getValue() == "") {
                 this.setValue("O");
 
                 this.setFont(Font.font(Font.getFamilies().get(17), FontWeight.BOLD, this.getPrefHeight() / 6));

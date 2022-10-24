@@ -14,7 +14,8 @@ public class ServerRequest implements Serializable {
         CHECK_PLAYERS,
         ADD_PLAYER,
         DISCONNECT_PLAYER,
-        SEND_BOARD;
+        SEND_BOARD,
+        GET_BOARD;
     }
 
     private String request;
@@ -48,8 +49,6 @@ public class ServerRequest implements Serializable {
     }
 
     public Object fulfillRequest(Server server) {
-
-
         switch (request) {
 
             case "RESET_BOARD" -> {
@@ -60,10 +59,18 @@ public class ServerRequest implements Serializable {
 
                 return checkPlayers(server);
             }
+            case "GET_BOARD" -> {
+                return retrieveBoard(server);
+            }
 
         }
         System.out.println(request + " didn't match");
         return new Object();
+    }
+
+    private String[][] retrieveBoard(Server server) {
+
+        return server.getGameCells();
     }
 
     private Player[] checkPlayers(Server server) {
@@ -71,6 +78,8 @@ public class ServerRequest implements Serializable {
 
         return players;
     }
+
+
 
     private String[][] resetBoard(Server server) {
 

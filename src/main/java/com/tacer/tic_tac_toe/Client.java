@@ -210,6 +210,7 @@ public class Client extends Application {
 
         public Scene setGame() {
 
+
             BorderPane root = new BorderPane();
             root.setPadding(new Insets(30, 30, 30, 30));
 
@@ -224,13 +225,56 @@ public class Client extends Application {
             System.out.println(player.getTurn());
             for (int row = 0; row < 3; row++) {
                 for (int col = 0; col < 3; col++) {
-
                     board.add(new LabelCell(row, col, player.getTeam()), col, row);
                 }
             }
 
+            serverHandler.execute(() -> {
+                try {
+                    while (true) {
+                        Thread.sleep(100);
+                        toServer.writeObject(new ServerRequest(ServerRequest.RequestType.GET_BOARD));
+                        toServer.flush();
+
+                        String[][] cellsToSend = LabelCell.matrixToString(LabelCell.cells);
+                        System.out.println("object sent: ");
+                        Stream.of(cellsToSend).forEach(cArr -> {
+                            System.out.println(Arrays.toString(cArr));
+                        });
+
+                        String[][] newBoard = (String[][]) fromServer.readObject();
+
+                        System.out.println("after reading");
+                        Stream.of(newBoard).forEach(c -> System.out.println(Arrays.toString(c)));
+                        System.out.println("here is one of the cells: \"" + newBoard[2][2] + "\"");
+                        Platform.runLater(() -> {
+
+                            for (int i = 0; i < newBoard.length * newBoard[1].length; i++) {
+
+                                LabelCell c = (LabelCell) board.getChildren().get(i);
+                                if (!c.getValue().equals(newBoard[i/3][i%3]))
+                                    LabelCell.turn.setValue(true);
+                                c.setValue(newBoard[i / 3][i % 3]);
+                            }
+                        });
+
+
+                    }
+
+                } catch (IOException f) {
+                    f.printStackTrace();
+                } catch (ClassNotFoundException g) {
+                    g.printStackTrace();
+                } catch (InterruptedException e) {
+                    throw new RuntimeException(e);
+                }
+
+
+            });
+
 
             LabelCell.turn.addListener(o -> {
+                if (LabelCell.turn.getValue() == false)
                 serverHandler.execute(() -> {
                     try {
                         toServer.writeObject(new ServerRequest(ServerRequest.RequestType.SEND_BOARD));
@@ -256,9 +300,7 @@ public class Client extends Application {
                                 c.setValue(newBoard[i / 3][i % 3]);
 
                             }
-
                         });
-
                     } catch (IOException f) {
                         f.printStackTrace();
                     } catch (ClassNotFoundException g) {
@@ -308,6 +350,40 @@ public class Client extends Application {
                             }
 
                         });
+
+                    } catch (IOException f) {
+                        f.printStackTrace();
+                    } catch (ClassNotFoundException g) {
+                        g.printStackTrace();
+                    }
+                    try {
+                        toServer.writeObject(new ServerRequest(ServerRequest.RequestType.SEND_BOARD));
+                        toServer.flush();
+
+                        String[][] cellsToSend = LabelCell.matrixToString(LabelCell.cells);
+                        System.out.println("object sent: ");
+                        Stream.of(cellsToSend).forEach(cArr -> {
+                            System.out.println(Arrays.toString(cArr));
+                        });
+                        toServer.writeObject(cellsToSend);
+                        toServer.flush();
+
+                        String[][] newBoard = (String[][]) fromServer.readObject();
+
+                        System.out.println("after reading");
+                        Stream.of(board.getChildren()).forEach(System.out::println);
+                        Platform.runLater(() -> {
+
+                            for (int i = 0; i < newBoard.length * newBoard[1].length; i++) {
+
+                                LabelCell c = (LabelCell) board.getChildren().get(i);
+                                c.setValue(newBoard[i / 3][i % 3]);
+
+                            }
+                        });
+
+                        //receive other client's board
+
 
                     } catch (IOException f) {
                         f.printStackTrace();

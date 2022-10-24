@@ -22,6 +22,7 @@ import java.util.Arrays;
 import java.util.Date;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.stream.Stream;
 
 public class Server extends Application {
 
@@ -103,8 +104,8 @@ public class Server extends Application {
 
             for (ServerCell[] cellRow : ServerCell.cells) {
                 for (ServerCell c : cellRow) {
-                    c.setValue(null);
-                    c.setText(null);
+                    c.setValue("");
+                    c.setText("");
 
                 }
             }
@@ -238,19 +239,10 @@ public class Server extends Application {
     }
     public String[][] checkCells(String[][] cells) {
 
-        String[][] unCheckedCells = cells;
+        gameCells = cells;
+        Stream.of(gameCells).forEach(c -> System.out.println(Arrays.toString(c)));
 
-        for (int row = 0; row < gameCells.length; row++) {
-            for (int col = 0; col < gameCells[row].length; col++) {
-
-                gameCells[row][col] = cells[row][col];
-            }
-
-        }
-
-
-
-        return cells;
+        return gameCells;
     }
 
     public Player[] getPlayersConnected() {

@@ -26,9 +26,10 @@ public class LabelCell extends Cell implements Serializable {
 
     public LabelCell(int row, int col, Player.Team team) {
 
-        super(null);
+        super("");
 
         cells[row][col] = this;
+        this.setValue("");
         this.prefHeightProperty().bind(windowHeight);
         this.prefWidthProperty().bind(windowWidth);
         this.setAlignment(Pos.CENTER);
@@ -36,7 +37,7 @@ public class LabelCell extends Cell implements Serializable {
         this.team = team;
         this.setOnMouseClicked(e -> {
             System.out.println("cell outer check");
-            if (turn.getValue() && this.getValue() == null) {
+            if (turn.getValue() && this.getValue().equals("")) {
                 System.out.println("cell check");
                 this.setValue(team.toString().substring(0, 1));
                 System.out.println(team.toString().substring(0,1));
@@ -45,7 +46,8 @@ public class LabelCell extends Cell implements Serializable {
 
 
             }
-            System.out.println("cell value is " + this.getValue());
+
+            System.out.println("cell value is " + "\"" + this.getValue() + "\"");
             System.out.println("cell turn is " + this.turn);
 
         });
@@ -72,7 +74,7 @@ public class LabelCell extends Cell implements Serializable {
         Pattern oWon = Pattern.compile("(OOO......)|(O...O...O)|(..O.O.O..)|(.O..O..O.)|(O..O..O..)|(...OOO...)|(......OOO)|(..O..O..O)");
         String won = "";
         for (int i = 0; i < 9; i++) {
-            if (cells[i / 3][i % 3].getValue() == null)
+            if (cells[i / 3][i % 3].getValue() == "")
                 won = won + "n";
             else
                 won = won + cells[i / 3][i % 3].getValue();
@@ -120,7 +122,7 @@ public class LabelCell extends Cell implements Serializable {
                 c.getStyleClass().add("cell");
                 c.setOnMouseClicked(e -> {
 
-                    if (turn.getValue() && c.getValue() == null) {
+                    if (turn.getValue() && c.getValue() == "") {
                         c.setValue(c.getTeam().toString().substring(0, 1));
                         LabelCell.turn.setValue(false);
                         checkCells();
@@ -151,7 +153,7 @@ public class LabelCell extends Cell implements Serializable {
         super.setValue(value);
         this.setText(value);
         this.setFont(Font.font(Font.getFamilies().get(17), FontWeight.BOLD, this.getPrefHeight() / 6));
-        this.setTextFill(team == Player.Team.O_TEAM ? Color.BLUE : Color.RED);
+        this.setTextFill(this.getValue().equals("O") ? Color.BLUE : Color.RED);
         this.value = value;
     }
 

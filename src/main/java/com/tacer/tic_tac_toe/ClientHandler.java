@@ -36,72 +36,71 @@ public class ClientHandler implements Runnable {
 
                 ServerRequest serverRequest = (ServerRequest) fromUser.readObject();
 
+                switch (serverRequest.getRequest()) {
+
+                    case "GET_INFO" -> {
+                        server.sendMessage("Server Request from client:" + serverRequest.getRequest());
+                        server.sendMessage("info request");
+
+                        toUser.writeObject(userAddress);
+                        toUser.flush();
+
+                    }
+                    case "DISCONNECT_PLAYER" -> {
+                        server.sendMessage("Server Request from client:" + serverRequest.getRequest());
+                        Player player = (Player) fromUser.readObject();
+
+                        Player disconnectPlayer = server.disconnectPlayer(player);
+
+                        server.sendMessage("removing player: " + disconnectPlayer);
+
+                        server.sendMessage(Arrays.toString(server.getPlayersConnected()));
 
 
-                if (serverRequest.getRequest().equals("GET_INFO")) {
-                    server.sendMessage("Server Request from client:" + serverRequest.getRequest());
-                    server.sendMessage("info request");
+                        toUser.writeObject(disconnectPlayer);
+                        toUser.flush();
 
-                    toUser.writeObject(userAddress);
-                    toUser.flush();
-                    continue;
+                    }
+                    case "ADD_PLAYER" -> {
+
+                        server.sendMessage("Server Request from client:" + serverRequest.getRequest());
+                        Player player = (Player) fromUser.readObject();
+
+                        server.sendMessage("adding player: " + player);
+
+                        player = server.connectPlayer(player);
+
+                        server.sendMessage(Arrays.toString(server.getPlayersConnected()));
+
+                        toUser.writeObject(player);
+                        toUser.flush();
+                    }
+                    case "SEND_BOARD" -> {
+                        server.sendMessage("Client is requesting to send board (" + serverRequest.getRequest()+ ")");
+
+                        String[][] cells = (String[][]) fromUser.readObject();
+
+                        System.out.println("object Received: ");
+
+                        Stream.of(cells).forEach(cArr -> server.sendMessage(Arrays.toString(cArr)));
+
+                        cells = server.checkCells(cells);
+
+                        server.sendMessage(" Sending board to client: ");
+
+                        Stream.of(cells).forEach(cArr -> server.sendMessage(Arrays.toString(cArr)));
+
+                        toUser.writeObject(cells);
+                        toUser.flush();
+
+                    }
+                    default -> {
+                        Object serverData = serverRequest.fulfillRequest(server);
+                        toUser.writeObject(serverData);
+                        toUser.flush();
+
+                    }
                 }
-                if (serverRequest.getRequest().equals("DISCONNECT_PLAYER")) {
-                    server.sendMessage("Server Request from client:" + serverRequest.getRequest());
-                    Player player = (Player) fromUser.readObject();
-
-                    Player disconnectPlayer = server.disconnectPlayer(player);
-
-                    server.sendMessage("removing player: " + disconnectPlayer);
-
-                    server.sendMessage(Arrays.toString(server.getPlayersConnected()));
-
-
-                    toUser.writeObject(disconnectPlayer);
-                    toUser.flush();
-                    continue;
-                }
-                if (serverRequest.getRequest().equals("ADD_PLAYER")) {
-                    server.sendMessage("Server Request from client:" + serverRequest.getRequest());
-                    Player player = (Player) fromUser.readObject();
-
-                    server.sendMessage("adding player: " + player);
-
-                    player = server.connectPlayer(player);
-
-                    server.sendMessage(Arrays.toString(server.getPlayersConnected()));
-
-                    toUser.writeObject(player);
-                    toUser.flush();
-                    continue;
-                }
-                if (serverRequest.getRequest().equals("SEND_BOARD")) {
-                    server.sendMessage("Client is requesting to send board (" + serverRequest.getRequest()+ ")");
-
-                    String[][] cells = (String[][]) fromUser.readObject();
-
-                    System.out.println("object Received: ");
-                    Stream.of(cells).forEach(cArr -> System.out.println(Arrays.toString(cArr)));
-                    cells = server.checkCells(cells);
-
-                    StringBuilder boardToSend = new StringBuilder("");
-
-                    Stream.of(cells).forEach(c -> boardToSend.append(" " +Arrays.toString(c)));
-
-                    server.sendMessage("Sending board to client: " + boardToSend);
-
-                    toUser.writeObject(cells);
-                    toUser.flush();
-                    continue;
-                }
-
-
-
-                Object serverData = serverRequest.fulfillRequest(server);
-                toUser.writeObject(serverData);
-                toUser.flush();
-
-                System.out.println("after writing");
             }
         } catch (SocketException e) {
 
