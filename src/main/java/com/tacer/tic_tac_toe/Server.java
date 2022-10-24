@@ -131,7 +131,13 @@ public class Server extends Application {
         checkCapacity.setOnAction(e -> {
             sendMessage(String.format("Player 1: %s%nPlayer 2: %s", playersConnected[0], playersConnected[1]));
         });
+        MenuItem resetGame = new MenuItem("reset game", new ImageView(Server.class.getResource("Assets/explosion.png").toExternalForm()));
 
+        resetGame.setOnAction(e -> {
+
+            Arrays.fill(gameCells, new String[]{"","",""});
+        });
+        server.getItems().addAll(resetCapacity, checkCapacity, resetGame);
 
         // End of "Server" Menu
         // Start of "Messages" Menu
@@ -148,7 +154,7 @@ public class Server extends Application {
         messageMenu.getItems().add(clearMessage);
 
         // End of "Messages" Menu
-        server.getItems().addAll(resetCapacity, checkCapacity);
+
         menuBar.getMenus().add(server);
 
         menuBar.setTranslateY(-40);
